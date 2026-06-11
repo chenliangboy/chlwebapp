@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas 漂浮图片墙</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        background: #090c10;
+        color: #f8fafc;
+        font-family:
+          Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      }
+
+      .stage {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        min-height: 560px;
+        overflow: hidden;
+        background: #090c10;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: default;
+        touch-action: none;
+      }
+
+      canvas.is-interactive {
+        cursor: grab;
+      }
+
+      canvas.is-dragging {
+        cursor: grabbing;
+      }
+
+      .hint {
+        position: absolute;
+        top: clamp(14px, 3vw, 28px);
+        left: 50%;
+        z-index: 30;
+        max-width: calc(100vw - 32px);
+        padding: 9px 14px;
+        border: 1px solid rgba(148, 163, 184, 0.26);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.72);
+        color: #e5e7eb;
+        font-size: 14px;
+        line-height: 1.3;
+        white-space: nowrap;
+        transform: translateX(-50%);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(12px);
+        pointer-events: none;
+      }
+
+      .layout-toggle {
+        position: absolute;
+        top: clamp(14px, 3vw, 28px);
+        right: clamp(14px, 3vw, 28px);
+        z-index: 40;
+        min-width: 86px;
+        height: 38px;
+        padding: 0 14px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.82);
+        color: #f8fafc;
+        font: inherit;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(12px);
+        transition:
+          background 160ms ease,
+          border-color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .layout-toggle:hover {
+        border-color: rgba(203, 213, 225, 0.55);
+        background: rgba(30, 41, 59, 0.92);
+        transform: translateY(-1px);
+      }
+
+      .layout-toggle:active {
+        transform: translateY(0);
+      }
+
+      @media (max-width: 900px) {
+        .stage {
+          min-height: 640px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .stage {
+          min-height: 100dvh;
+        }
+
+        .hint {
+          top: 12px;
+          left: 14px;
+          max-width: calc(100vw - 128px);
+          padding: 8px 12px;
+          font-size: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          transform: none;
+        }
+
+        .layout-toggle {
+          top: 10px;
+          right: 10px;
+          min-width: 76px;
+          height: 34px;
+          padding: 0 10px;
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage" aria-label="Canvas 可拖拽的漂浮图片墙">
+      <div class="hint">Canvas 版本：拖动圆形图片，悬停查看文字</div>
+      <button id="layoutToggle" class="layout-toggle" type="button" aria-pressed="false">网格布局</button>
+      <canvas id="bubbleCanvas"></canvas>
+    </main>
+
+    <script>
+      const items = [
+        ['晨光', '#ffb86c', '#ffe2a8', 'sun'],
+        ['山谷', '#58c4dd', '#d8f5ff', 'mountain'],
+        ['花园', '#ff7aa2', '#ffd4e2', 'flower'],
+        ['海面', '#4d96ff', '#cbe3ff', 'wave'],
+        ['森林', '#3fbd74', '#cbf2d9', 'leaf'],
+        ['星空', '#7c5cff', '#ded6ff', 'star'],
+        ['咖啡', '#b8794b', '#f2ddc7', 'cup'],
+        ['音乐', '#ff6b6b', '#ffd2d2', 'note'],
+        ['旅行', '#22b8cf', '#c5f6fa', 'plane'],
+        ['阅读', '#845ef7', '#e5dbff', 'book'],
+        ['城市', '#6c757d', '#e9ecef', 'city'],
+        ['水果', '#f59f00', '#fff3bf', 'fruit'],
+        ['雨滴', '#339af0', '#d0ebff', 'drop'],
+        ['晚霞', '#f06595', '#ffe0ec', 'cloud'],
+        ['绿洲', '#20c997', '#c3fae8', 'tree'],
+        ['月亮', '#748ffc', '#dbe4ff', 'moon'],
+        ['火焰', '#ff922b', '#ffe8cc', 'fire'],
+        ['雪山', '#15aabf', '#e3fafc', 'snow'],
+        ['电影', '#495057', '#dee2e6', 'film'],
+        ['灵感', '#fcc419', '#fff9db', 'spark']
+      ];
+
+      const canvas = document.querySelector('#bubbleCanvas');
+      const toggle = document.querySelector('#layoutToggle');
+      const ctx = canvas.getContext('2d');
+      const bubbles = [];
+      const pointer = {
+        id: null,
+        item: null,
+        hover: null,
+        offsetX: 0,
+        offsetY: 0
+      };
+
+      let layoutMode = 'free';
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+
+      function randomBetween(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function randomSize() {
+        if (window.matchMedia('(max-width: 560px)').matches) return randomBetween(44, 64);
+        if (window.matchMedia('(max-width: 900px)').matches) return randomBetween(48, 72);
+        return randomBetween(52, 84);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function roundedRect(context, x, y, w, h, radius) {
+        const r = Math.min(radius, w / 2, h / 2);
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.arcTo(x + w, y, x + w, y + h, r);
+        context.arcTo(x + w, y + h, x, y + h, r);
+        context.arcTo(x, y + h, x, y, r);
+        context.arcTo(x, y, x + w, y, r);
+        context.closePath();
+      }
+
+      function overlapsExisting(x, y, size) {
+        const padding = 8;
+        const radius = size / 2;
+        const cx = x + radius;
+        const cy = y + radius;
+
+        return bubbles.some((item) => {
+          const otherRadius = item.size / 2;
+          const dx = cx - (item.x + otherRadius);
+          const dy = cy - (item.y + otherRadius);
+          const minDistance = radius + otherRadius + padding;
+          return dx * dx + dy * dy < minDistance * minDistance;
+        });
+      }
+
+      function initialPosition(size) {
+        for (let attempt = 0; attempt < 90; attempt += 1) {
+          const x = randomBetween(0, Math.max(0, width - size));
+          const y = randomBetween(0, Math.max(0, height - size));
+          if (!overlapsExisting(x, y, size)) return { x, y };
+        }
+
+        return {
+          x: randomBetween(0, Math.max(0, width - size)),
+          y: randomBetween(0, Math.max(0, height - size))
+        };
+      }
+
+      function createBubbles() {
+        bubbles.length = 0;
+
+        items.forEach(([label, color, pale, type], index) => {
+          const size = randomSize();
+          const position = initialPosition(size);
+          bubbles.push({
+            label,
+            color,
+            pale,
+            type,
+            size,
+            x: position.x,
+            y: position.y,
+            vx: randomBetween(-0.16, 0.16) || 0.12,
+            vy: randomBetween(-0.16, 0.16) || -0.12,
+            targetX: position.x,
+            targetY: position.y,
+            paused: false,
+            dragging: false,
+            hoverAmount: 0,
+            order: index
+          });
+        });
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        width = rect.width;
+        height = rect.height;
+        dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (bubbles.length === 0) {
+          createBubbles();
+          return;
+        }
+
+        for (const item of bubbles) {
+          item.x = clamp(item.x, 0, Math.max(0, width - item.size));
+          item.y = clamp(item.y, 0, Math.max(0, height - item.size));
+        }
+
+        if (layoutMode === 'grid') applyGridTargets();
+      }
+
+      function gridPositions() {
+        const topReserve = window.matchMedia('(max-width: 560px)').matches ? 76 : 88;
+        const sideGap = window.matchMedia('(max-width: 560px)').matches ? 18 : 36;
+        const largest = Math.max(...bubbles.map((item) => item.size));
+        const cell = Math.max(largest + 22, window.matchMedia('(max-width: 560px)').matches ? 72 : 92);
+        const availableWidth = Math.max(cell, width - sideGap * 2);
+        const cols = Math.max(1, Math.floor(availableWidth / cell));
+        const rows = Math.ceil(bubbles.length / cols);
+        const gridWidth = cols * cell;
+        const gridHeight = rows * cell;
+        const startX = Math.max(sideGap, (width - gridWidth) / 2 + cell / 2);
+        const startY = Math.max(topReserve, (height - gridHeight) / 2 + cell / 2);
+
+        return bubbles.map((item, index) => {
+          const col = index % cols;
+          const row = Math.floor(index / cols);
+          const x = startX + col * cell - item.size / 2;
+          const y = startY + row * cell - item.size / 2;
+
+          return {
+            x: clamp(x, 0, Math.max(0, width - item.size)),
+            y: clamp(y, 0, Math.max(0, height - item.size))
+          };
+        });
+      }
+
+      function applyGridTargets() {
+        const positions = gridPositions();
+        bubbles.forEach((item, index) => {
+          item.targetX = positions[index].x;
+          item.targetY = positions[index].y;
+          item.paused = true;
+          item.dragging = false;
+        });
+      }
+
+      function setLayoutMode(mode) {
+        layoutMode = mode;
+        toggle.setAttribute('aria-pressed', String(mode === 'grid'));
+        toggle.textContent = mode === 'grid' ? '自由布局' : '网格布局';
+
+        if (mode === 'grid') {
+          applyGridTargets();
+          pointer.item = null;
+          pointer.id = null;
+          return;
+        }
+
+        for (const item of bubbles) {
+          item.paused = false;
+          item.vx = item.vx || randomBetween(-0.14, 0.14) || 0.1;
+          item.vy = item.vy || randomBetween(-0.14, 0.14) || -0.1;
+        }
+      }
+
+      function itemAt(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        for (let i = bubbles.length - 1; i >= 0; i -= 1) {
+          const item = bubbles[i];
+          const radius = item.size / 2;
+          const dx = x - (item.x + radius);
+          const dy = y - (item.y + radius);
+          if (dx * dx + dy * dy <= radius * radius) return item;
+        }
+
+        return null;
+      }
+
+      function resolveCollisions() {
+        const padding = 8;
+
+        for (let i = 0; i < bubbles.length; i += 1) {
+          for (let j = i + 1; j < bubbles.length; j += 1) {
+            const a = bubbles[i];
+            const b = bubbles[j];
+            const ar = a.size / 2;
+            const br = b.size / 2;
+            const ax = a.x + ar;
+            const ay = a.y + ar;
+            const bx = b.x + br;
+            const by = b.y + br;
+            const dx = bx - ax;
+            const dy = by - ay;
+            const minDistance = ar + br + padding;
+            const distance = Math.hypot(dx, dy) || 0.01;
+
+            if (distance >= minDistance) continue;
+
+            const overlap = (minDistance - distance) / 2;
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            if (!a.dragging) {
+              a.x -= nx * overlap;
+              a.y -= ny * overlap;
+            }
+
+            if (!b.dragging) {
+              b.x += nx * overlap;
+              b.y += ny * overlap;
+            }
+
+            if (!a.dragging && !a.paused) {
+              a.vx -= nx * 0.025;
+              a.vy -= ny * 0.025;
+            }
+
+            if (!b.dragging && !b.paused) {
+              b.vx += nx * 0.025;
+              b.vy += ny * 0.025;
+            }
+          }
+        }
+
+        for (const item of bubbles) {
+          item.x = clamp(item.x, 0, Math.max(0, width - item.size));
+          item.y = clamp(item.y, 0, Math.max(0, height - item.size));
+          item.vx = clamp(item.vx, -0.2, 0.2);
+          item.vy = clamp(item.vy, -0.2, 0.2);
+        }
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = '#090c10';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= width; x += 28) {
+          ctx.beginPath();
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= height; y += 28) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(width, y + 0.5);
+          ctx.stroke();
+        }
+      }
+
+      function drawIcon(item, cx, cy, radius, scale) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale((radius * 2 * scale) / 200, (radius * 2 * scale) / 200);
+        ctx.translate(-100, -100);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (item.type === 'sun') {
+          ctx.beginPath();
+          ctx.arc(100, 92, 28, 0, Math.PI * 2);
+          ctx.fill();
+          [[100, 28, 100, 46], [100, 138, 100, 156], [36, 92, 18, 92], [182, 92, 164, 92], [55, 47, 42, 34], [145, 47, 158, 34], [55, 137, 42, 150], [145, 137, 158, 150]].forEach(([x1, y1, x2, y2]) => {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          });
+        } else if (item.type === 'mountain') {
+          ctx.beginPath();
+          ctx.moveTo(24, 145);
+          ctx.lineTo(77, 70);
+          ctx.lineTo(110, 113);
+          ctx.lineTo(128, 88);
+          ctx.lineTo(176, 145);
+          ctx.closePath();
+          ctx.fill();
+        } else if (item.type === 'flower') {
+          ctx.globalAlpha = 0.78;
+          [[100, 58, 17, 32], [100, 142, 17, 32], [58, 100, 32, 17], [142, 100, 32, 17]].forEach(([x, y, rx, ry]) => {
+            ctx.beginPath();
+            ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.arc(100, 100, 17, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (item.type === 'wave') {
+          ctx.beginPath();
+          ctx.moveTo(22, 111);
+          ctx.bezierCurveTo(44, 83, 70, 83, 92, 111);
+          ctx.bezierCurveTo(114, 139, 140, 139, 178, 111);
+          ctx.stroke();
+          ctx.globalAlpha = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(22, 139);
+          ctx.bezierCurveTo(44, 115, 70, 115, 92, 139);
+          ctx.bezierCurveTo(114, 163, 140, 163, 178, 139);
+          ctx.stroke();
+        } else if (item.type === 'leaf') {
+          ctx.beginPath();
+          ctx.moveTo(158, 43);
+          ctx.bezierCurveTo(89, 44, 52, 77, 51, 128);
+          ctx.bezierCurveTo(51, 150, 66, 164, 88, 164);
+          ctx.bezierCurveTo(138, 164, 166, 111, 158, 43);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(61, 149);
+          ctx.bezierCurveTo(94, 106, 123, 89, 153, 66);
+          ctx.stroke();
+        } else if (item.type === 'star') {
+          drawStar(100, 103, 74, 32, 5);
+        } else if (item.type === 'cup') {
+          roundedRect(ctx, 53, 70, 82, 90, 18);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(135, 84);
+          ctx.lineTo(150, 84);
+          ctx.bezierCurveTo(177, 84, 177, 124, 150, 124);
+          ctx.lineTo(135, 124);
+          ctx.stroke();
+        } else if (item.type === 'note') {
+          ctx.beginPath();
+          ctx.moveTo(124, 36);
+          ctx.lineTo(124, 114);
+          ctx.arc(99, 114, 25, 0, Math.PI * 2);
+          ctx.moveTo(124, 56);
+          ctx.lineTo(157, 48);
+          ctx.lineTo(157, 101);
+          ctx.arc(132, 101, 25, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (item.type === 'plane') {
+          ctx.beginPath();
+          ctx.moveTo(178, 34);
+          ctx.lineTo(28, 94);
+          ctx.lineTo(89, 114);
+          ctx.lineTo(110, 172);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(89, 114);
+          ctx.lineTo(128, 75);
+          ctx.stroke();
+        } else if (item.type === 'book') {
+          roundedRect(ctx, 45, 45, 55, 92, 8);
+          ctx.fill();
+          roundedRect(ctx, 100, 45, 55, 92, 8);
+          ctx.fill();
+        } else if (item.type === 'city') {
+          ctx.fillRect(35, 69, 34, 85);
+          ctx.fillRect(87, 42, 45, 112);
+          ctx.fillRect(132, 88, 33, 66);
+        } else if (item.type === 'fruit') {
+          ctx.beginPath();
+          ctx.arc(92, 109, 48, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.75;
+          ctx.beginPath();
+          ctx.ellipse(137, 44, 28, 14, -0.45, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (item.type === 'drop') {
+          ctx.beginPath();
+          ctx.moveTo(100, 24);
+          ctx.bezierCurveTo(139, 70, 158, 102, 158, 129);
+          ctx.arc(100, 129, 58, 0, Math.PI, false);
+          ctx.bezierCurveTo(42, 102, 61, 70, 100, 24);
+          ctx.fill();
+        } else if (item.type === 'cloud') {
+          ctx.beginPath();
+          ctx.arc(65, 103, 34, Math.PI * 0.45, Math.PI * 1.55);
+          ctx.arc(105, 92, 45, Math.PI, Math.PI * 1.9);
+          ctx.arc(154, 110, 27, Math.PI * 1.35, Math.PI * 0.5);
+          ctx.closePath();
+          ctx.fill();
+        } else if (item.type === 'tree') {
+          ctx.beginPath();
+          ctx.moveTo(101, 29);
+          ctx.lineTo(42, 105);
+          ctx.lineTo(79, 105);
+          ctx.lineTo(52, 142);
+          ctx.lineTo(85, 142);
+          ctx.lineTo(85, 170);
+          ctx.lineTo(115, 170);
+          ctx.lineTo(115, 142);
+          ctx.lineTo(148, 142);
+          ctx.lineTo(121, 105);
+          ctx.lineTo(158, 105);
+          ctx.closePath();
+          ctx.fill();
+        } else if (item.type === 'moon') {
+          ctx.beginPath();
+          ctx.arc(100, 95, 70, Math.PI * 0.35, Math.PI * 1.72);
+          ctx.bezierCurveTo(82, 55, 104, 33, 137, 31);
+          ctx.bezierCurveTo(92, 76, 99, 135, 137, 159);
+          ctx.fill();
+        } else if (item.type === 'fire') {
+          ctx.beginPath();
+          ctx.moveTo(105, 172);
+          ctx.bezierCurveTo(68, 163, 50, 136, 57, 102);
+          ctx.bezierCurveTo(62, 79, 77, 63, 100, 36);
+          ctx.bezierCurveTo(104, 61, 113, 74, 128, 86);
+          ctx.bezierCurveTo(134, 72, 133, 58, 128, 43);
+          ctx.bezierCurveTo(157, 65, 176, 95, 170, 127);
+          ctx.bezierCurveTo(165, 156, 142, 172, 105, 172);
+          ctx.fill();
+        } else if (item.type === 'snow') {
+          [[100, 30, 100, 170], [39, 65, 161, 135], [39, 135, 161, 65], [75, 44, 100, 67], [100, 67, 125, 44], [75, 156, 100, 133], [100, 133, 125, 156]].forEach(([x1, y1, x2, y2]) => {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+          });
+        } else if (item.type === 'film') {
+          roundedRect(ctx, 40, 48, 120, 104, 12);
+          ctx.fill();
+          ctx.strokeStyle = item.color;
+          ctx.beginPath();
+          ctx.moveTo(68, 48);
+          ctx.lineTo(68, 152);
+          ctx.moveTo(132, 48);
+          ctx.lineTo(132, 152);
+          ctx.stroke();
+        } else {
+          drawStar(101, 99, 72, 18, 4);
+          ctx.globalAlpha = 0.75;
+          ctx.beginPath();
+          ctx.arc(156, 48, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(49, 151, 9, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawStar(cx, cy, outer, inner, points) {
+        ctx.beginPath();
+        for (let i = 0; i < points * 2; i += 1) {
+          const angle = -Math.PI / 2 + (i * Math.PI) / points;
+          const radius = i % 2 === 0 ? outer : inner;
+          const x = cx + Math.cos(angle) * radius;
+          const y = cy + Math.sin(angle) * radius;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawBubble(item) {
+        const active = item === pointer.hover || item.dragging;
+        item.hoverAmount += ((active ? 1 : 0) - item.hoverAmount) * 0.18;
+
+        const radius = item.size / 2;
+        const cx = item.x + radius;
+        const cy = item.y + radius;
+        const scale = 1 + item.hoverAmount * 0.13;
+        const drawRadius = radius * scale;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.34)';
+        ctx.shadowBlur = 26 + item.hoverAmount * 18;
+        ctx.shadowOffsetY = 12 + item.hoverAmount * 10;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, drawRadius, 0, Math.PI * 2);
+        ctx.clip();
+
+        const gradient = ctx.createRadialGradient(
+          cx - drawRadius * 0.36,
+          cy - drawRadius * 0.52,
+          drawRadius * 0.1,
+          cx,
+          cy,
+          drawRadius * 1.1
+        );
+        gradient.addColorStop(0, item.pale);
+        gradient.addColorStop(0.55, item.color);
+        gradient.addColorStop(1, '#1f2937');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(cx - drawRadius, cy - drawRadius, drawRadius * 2, drawRadius * 2);
+
+        ctx.globalAlpha = 0.32;
+        ctx.fillStyle = item.color;
+        ctx.beginPath();
+        ctx.moveTo(cx - drawRadius, cy + drawRadius * 0.3);
+        ctx.bezierCurveTo(cx - drawRadius * 0.55, cy - drawRadius * 0.05, cx - drawRadius * 0.3, cy + drawRadius * 0.62, cx + drawRadius * 0.16, cy + drawRadius * 0.2);
+        ctx.bezierCurveTo(cx + drawRadius * 0.52, cy - drawRadius * 0.1, cx + drawRadius * 0.7, cy + drawRadius * 0.08, cx + drawRadius, cy - drawRadius * 0.24);
+        ctx.lineTo(cx + drawRadius, cy + drawRadius);
+        ctx.lineTo(cx - drawRadius, cy + drawRadius);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        drawIcon(item, cx, cy, drawRadius, 0.74);
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, drawRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = active ? 'rgba(203, 213, 225, 0.5)' : 'rgba(203, 213, 225, 0.34)';
+        ctx.lineWidth = active ? 2 : 1;
+        ctx.stroke();
+        ctx.restore();
+
+        if (item.hoverAmount > 0.02) drawLabel(item, cx, cy, drawRadius);
+      }
+
+      function drawLabel(item, cx, cy, radius) {
+        const opacity = item.hoverAmount;
+        const fontSize = window.matchMedia('(max-width: 560px)').matches ? 12 : 13;
+        ctx.save();
+        ctx.font = `${fontSize}px Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif`;
+        const textWidth = ctx.measureText(item.label).width;
+        const w = Math.min(Math.max(textWidth + 18, 42), 112);
+        const h = fontSize + 12;
+        const x = clamp(cx - w / 2, 8, width - w - 8);
+        const y = Math.max(8, cy - radius - h - 10 + (1 - opacity) * 8);
+
+        ctx.globalAlpha = opacity;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.34)';
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 10;
+        roundedRect(ctx, x, y, w, h, 999);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.28)';
+        ctx.stroke();
+        ctx.fillStyle = '#f8fafc';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.label, x + w / 2, y + h / 2 + 0.5);
+        ctx.restore();
+      }
+
+      function updateCanvasCursor() {
+        canvas.classList.toggle('is-interactive', layoutMode === 'free' && pointer.hover !== null);
+        canvas.classList.toggle('is-dragging', pointer.item !== null);
+      }
+
+      function animate() {
+        if (layoutMode === 'grid') {
+          for (const item of bubbles) {
+            item.x += (item.targetX - item.x) * 0.08;
+            item.y += (item.targetY - item.y) * 0.08;
+          }
+        } else {
+          for (const item of bubbles) {
+            item.paused = item === pointer.hover && !item.dragging;
+            if (!item.paused && !item.dragging) {
+              item.x += item.vx;
+              item.y += item.vy;
+
+              if (item.x <= 0 || item.x >= width - item.size) item.vx *= -1;
+              if (item.y <= 0 || item.y >= height - item.size) item.vy *= -1;
+
+              item.x = clamp(item.x, 0, Math.max(0, width - item.size));
+              item.y = clamp(item.y, 0, Math.max(0, height - item.size));
+            }
+          }
+
+          resolveCollisions();
+        }
+
+        drawBackground();
+        const ordered = bubbles.slice().sort((a, b) => {
+          if (a.dragging !== b.dragging) return a.dragging ? 1 : -1;
+          if ((a === pointer.hover) !== (b === pointer.hover)) return a === pointer.hover ? 1 : -1;
+          return a.order - b.order;
+        });
+        ordered.forEach(drawBubble);
+        requestAnimationFrame(animate);
+      }
+
+      canvas.addEventListener('pointermove', (event) => {
+        if (pointer.item) {
+          const rect = canvas.getBoundingClientRect();
+          const item = pointer.item;
+          item.x = clamp(event.clientX - rect.left - pointer.offsetX, 0, Math.max(0, width - item.size));
+          item.y = clamp(event.clientY - rect.top - pointer.offsetY, 0, Math.max(0, height - item.size));
+          updateCanvasCursor();
+          return;
+        }
+
+        pointer.hover = itemAt(event.clientX, event.clientY);
+        updateCanvasCursor();
+      });
+
+      canvas.addEventListener('pointerleave', () => {
+        if (!pointer.item) pointer.hover = null;
+        updateCanvasCursor();
+      });
+
+      canvas.addEventListener('pointerdown', (event) => {
+        if (layoutMode === 'grid') return;
+        const item = itemAt(event.clientX, event.clientY);
+        if (!item) return;
+
+        const rect = canvas.getBoundingClientRect();
+        pointer.id = event.pointerId;
+        pointer.item = item;
+        pointer.hover = item;
+        pointer.offsetX = event.clientX - rect.left - item.x;
+        pointer.offsetY = event.clientY - rect.top - item.y;
+        item.dragging = true;
+        item.paused = true;
+        canvas.setPointerCapture(event.pointerId);
+        updateCanvasCursor();
+      });
+
+      function stopDrag(event) {
+        if (!pointer.item || event.pointerId !== pointer.id) return;
+        pointer.item.dragging = false;
+        pointer.item.paused = false;
+        pointer.item = null;
+        pointer.id = null;
+        pointer.hover = itemAt(event.clientX, event.clientY);
+        updateCanvasCursor();
+      }
+
+      canvas.addEventListener('pointerup', stopDrag);
+      canvas.addEventListener('pointercancel', stopDrag);
+      toggle.addEventListener('click', () => {
+        setLayoutMode(layoutMode === 'free' ? 'grid' : 'free');
+        updateCanvasCursor();
+      });
+      window.addEventListener('resize', resizeCanvas);
+
+      resizeCanvas();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>
