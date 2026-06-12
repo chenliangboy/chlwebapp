@@ -1,32 +1,41 @@
 import './style.css';
 
 const items = [
-  ['晨光', '#ffb86c', '#ffe2a8', 'sun'],
-  ['山谷', '#58c4dd', '#d8f5ff', 'mountain'],
-  ['花园', '#ff7aa2', '#ffd4e2', 'flower'],
-  ['海面', '#4d96ff', '#cbe3ff', 'wave'],
-  ['森林', '#3fbd74', '#cbf2d9', 'leaf'],
-  ['星空', '#7c5cff', '#ded6ff', 'star'],
-  ['咖啡', '#b8794b', '#f2ddc7', 'cup'],
-  ['音乐', '#ff6b6b', '#ffd2d2', 'note'],
-  ['旅行', '#22b8cf', '#c5f6fa', 'plane'],
-  ['阅读', '#845ef7', '#e5dbff', 'book'],
-  ['城市', '#6c757d', '#e9ecef', 'city'],
-  ['水果', '#f59f00', '#fff3bf', 'fruit'],
-  ['雨滴', '#339af0', '#d0ebff', 'drop'],
-  ['晚霞', '#f06595', '#ffe0ec', 'cloud'],
-  ['绿洲', '#20c997', '#c3fae8', 'tree'],
-  ['月亮', '#748ffc', '#dbe4ff', 'moon'],
-  ['火焰', '#ff922b', '#ffe8cc', 'fire'],
-  ['雪山', '#15aabf', '#e3fafc', 'snow'],
-  ['电影', '#495057', '#dee2e6', 'film'],
-  ['灵感', '#fcc419', '#fff9db', 'spark']
+  { title: '晨光', color: '#ffb86c', pale: '#ffe2a8', type: 'sun' },
+  { title: '山谷', color: '#58c4dd', pale: '#d8f5ff', type: 'mountain' },
+  { title: '花园', color: '#ff7aa2', pale: '#ffd4e2', type: 'flower' },
+  { title: '海面', color: '#4d96ff', pale: '#cbe3ff', type: 'wave' },
+  // { title: '森林', color: '#3fbd74', pale: '#cbf2d9', type: 'leaf' },
+  // { title: '星空', color: '#7c5cff', pale: '#ded6ff', type: 'star' },
+  // { title: '咖啡', color: '#b8794b', pale: '#f2ddc7', type: 'cup' },
+  // { title: '音乐', color: '#ff6b6b', pale: '#ffd2d2', type: 'note' },
+  // { title: '旅行', color: '#22b8cf', pale: '#c5f6fa', type: 'plane' },
+  // { title: '阅读', color: '#845ef7', pale: '#e5dbff', type: 'book' },
+  // { title: '城市', color: '#6c757d', pale: '#e9ecef', type: 'city' },
+  // { title: '水果', color: '#f59f00', pale: '#fff3bf', type: 'fruit' },
+  // { title: '雨滴', color: '#339af0', pale: '#d0ebff', type: 'drop' },
+  // { title: '晚霞', color: '#f06595', pale: '#ffe0ec', type: 'cloud' },
+  // { title: '绿洲', color: '#20c997', pale: '#c3fae8', type: 'tree' },
+  // { title: '月亮', color: '#748ffc', pale: '#dbe4ff', type: 'moon' },
+  // { title: '火焰', color: '#ff922b', pale: '#ffe8cc', type: 'fire' },
+  // { title: '雪山', color: '#15aabf', pale: '#e3fafc', type: 'snow' },
+  // { title: '电影', color: '#495057', pale: '#dee2e6', type: 'film' },
+  // { title: '灵感', color: '#fcc419', pale: '#fff9db', type: 'spark' },
+  { title: 'chl', color: '#ffc107', pale: '#fff3cd', type: 'note',image: './images/chl.png' },
+  { title: 'xiaoran', color: '#f8b500', pale: '#fffceb', type: 'film',image: './images/xiaoran.jpg' },
+  { title: 'deepseek', color: '#ffc107', pale: '#fff3cd', type: 'note',image: 'https://www.deepseek.com/favicon.ico' },
+  { title: 'supabase', color: '#f8b500', pale: '#fffceb', type: 'film',image: 'https://supabase.com/dashboard/img/supabase-logo.svg' },
+  { title: 'xuanxuan', color: '#f8b500', pale: '#fffceb', type: 'film',image: './images/xuanxuan.jpg' },
 ];
 
 const layer = document.querySelector('#bubbleLayer');
 const layoutToggle = document.querySelector('#layoutToggle');
+const searchToggle = document.querySelector('#searchToggle');
+const searchPanel = document.querySelector('#searchPanel');
+const searchInput = document.querySelector('#bubbleSearch');
 const bubbles = [];
 let layoutMode = 'free';
+let searchQuery = '';
 const pointer = {
   id: null,
   item: null,
@@ -34,8 +43,8 @@ const pointer = {
   offsetY: 0
 };
 
-function iconMarkup(type) {
-  const common = 'fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"';
+function iconMarkup(type, stroke = 'white') {
+  const common = `fill="none" stroke="${stroke}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"`;
   const icons = {
     sun: `<circle cx="100" cy="92" r="28" fill="white" opacity=".95"/><path ${common} d="M100 28v18M100 138v18M36 92H18M182 92h-18M55 47 42 34M145 47l13-13M55 137l-13 13M145 137l13 13"/>`,
     mountain: `<path fill="white" opacity=".95" d="M24 145 77 70l33 43 18-25 48 57H24Z"/><path fill="#ffffff" opacity=".6" d="m77 70 13 17-19 3Z"/>`,
@@ -61,7 +70,8 @@ function iconMarkup(type) {
   return icons[type] || icons.spark;
 }
 
-function imageFor(label, color, pale, type) {
+function imageFor(label, color, pale, type, image) {
+  if (image) return image;
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
       <defs>
@@ -77,6 +87,7 @@ function imageFor(label, color, pale, type) {
       </defs>
       <rect width="200" height="200" fill="url(#g)"/>
       <path d="M0 130 C45 96 70 162 116 122 C150 92 170 108 200 78 L200 200 L0 200Z" fill="url(#soft)"/>
+      <title>${label}</title>
     </svg>
   `;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
@@ -94,6 +105,133 @@ function randomSize() {
 
 function layerRect() {
   return layer.getBoundingClientRect();
+}
+
+class Bubble {
+  constructor(data, index, options) {
+    const { label, color, pale, type, image } = Bubble.normalizeData(data);
+    const {
+      layer,
+      getLayerRect,
+      getInitialPosition,
+      onPointerDown,
+      onHoverChange
+    } = options;
+
+    this.label = label;
+    this.color = color;
+    this.pale = pale;
+    this.type = type;
+    this.image = image;
+    this.node = document.createElement('div');
+    this.node.className = 'bubble';
+    this.node.classList.toggle('has-image', Boolean(image));
+    this.node.style.setProperty('--size', `${randomSize()}px`);
+    this.node.style.zIndex = String(index + 1);
+    this.node.innerHTML = `
+      <div class="bubble-visual">
+        <img src="${imageFor(label, color, pale, type, image)}" alt="${label}" draggable="false" />
+      </div>
+      <span>${label}</span>
+    `;
+
+    layer.appendChild(this.node);
+
+    const rect = getLayerRect();
+    this.size = parseFloat(this.node.style.getPropertyValue('--size'));
+    const position = getInitialPosition(rect, this.size);
+    this.x = position.x;
+    this.y = position.y;
+    this.vx = randomBetween(-0.16, 0.16) || 0.12;
+    this.vy = randomBetween(-0.16, 0.16) || -0.12;
+    this.targetX = position.x;
+    this.targetY = position.y;
+    this.paused = false;
+    this.dragging = false;
+
+    this.node.addEventListener('pointerenter', () => {
+      onHoverChange(this, true);
+    });
+    this.node.addEventListener('pointerleave', () => {
+      onHoverChange(this, false);
+    });
+    this.node.addEventListener('pointerdown', (event) => onPointerDown(event, this));
+    this.render();
+  }
+
+  static normalizeData(data) {
+    if (Array.isArray(data)) {
+      const [label, color, pale, type, image] = data;
+      return { label, color, pale, type, image };
+    }
+
+    return {
+      label: data.label || data.title || data.name || '',
+      color: data.color || '#64748b',
+      pale: data.pale || data.lightColor || data.backgroundColor || '#e2e8f0',
+      type: data.type || 'spark',
+      image: data.image || data.imageUrl || data.img || data.src || ''
+    };
+  }
+
+  setSearchState(state) {
+    this.node.classList.toggle('is-search-match', state === 'match');
+    this.node.classList.toggle('is-search-miss', state === 'miss');
+    if (state === 'match') this.paused = true;
+  }
+
+  clearSearchState() {
+    this.node.classList.remove('is-search-match', 'is-search-miss');
+    if (!this.dragging && layoutMode !== 'grid') this.paused = false;
+  }
+
+  setGridTarget(position) {
+    this.targetX = position.x;
+    this.targetY = position.y;
+    this.paused = true;
+  }
+
+  resumeFloating() {
+    this.paused = false;
+    this.vx = this.vx || randomBetween(-0.14, 0.14) || 0.1;
+    this.vy = this.vy || randomBetween(-0.14, 0.14) || -0.1;
+  }
+
+  moveToGridTarget() {
+    this.x += (this.targetX - this.x) * 0.08;
+    this.y += (this.targetY - this.y) * 0.08;
+  }
+
+  float(bounds) {
+    if (this.paused || this.dragging) return;
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    if (this.x <= 0 || this.x >= bounds.width - this.size) this.vx *= -1;
+    if (this.y <= 0 || this.y >= bounds.height - this.size) this.vy *= -1;
+
+    this.keepInside(bounds);
+  }
+
+  keepInside(bounds) {
+    this.x = Math.min(Math.max(0, this.x), Math.max(0, bounds.width - this.size));
+    this.y = Math.min(Math.max(0, this.y), Math.max(0, bounds.height - this.size));
+  }
+
+  refreshSize(bounds) {
+    this.size = this.node.getBoundingClientRect().width;
+    this.keepInside(bounds);
+  }
+
+  clampVelocity(limit = 0.2) {
+    this.vx = Math.max(-limit, Math.min(limit, this.vx));
+    this.vy = Math.max(-limit, Math.min(limit, this.vy));
+  }
+
+  render() {
+    this.node.style.transform = `translate3d(${this.x}px, ${this.y}px, 0)`;
+  }
 }
 
 function overlapsExisting(x, y, size) {
@@ -127,7 +265,7 @@ function initialPosition(rect, size) {
 function gridPositions(rect) {
   const topReserve = window.matchMedia('(max-width: 560px)').matches ? 76 : 88;
   const sideGap = window.matchMedia('(max-width: 560px)').matches ? 18 : 36;
-  const largest = Math.max(...bubbles.map((item) => item.size));
+  const largest = Math.max(...bubbles.map((item) => item.size), 64);
   const cell = Math.max(largest + 22, window.matchMedia('(max-width: 560px)').matches ? 72 : 92);
   const availableWidth = Math.max(cell, rect.width - sideGap * 2);
   const cols = Math.max(1, Math.floor(availableWidth / cell));
@@ -154,9 +292,7 @@ function applyGridTargets() {
   const rect = layerRect();
   const positions = gridPositions(rect);
   bubbles.forEach((item, index) => {
-    item.targetX = positions[index].x;
-    item.targetY = positions[index].y;
-    item.paused = true;
+    item.setGridTarget(positions[index]);
   });
 }
 
@@ -164,7 +300,9 @@ function setLayoutMode(mode) {
   layoutMode = mode;
   document.body.classList.toggle('is-grid-mode', mode === 'grid');
   layoutToggle.setAttribute('aria-pressed', String(mode === 'grid'));
-  layoutToggle.textContent = mode === 'grid' ? '自由布局' : '网格布局';
+  const nextTitle = mode === 'grid' ? '切换为自由布局' : '切换为网格布局';
+  layoutToggle.setAttribute('aria-label', nextTitle);
+  layoutToggle.title = nextTitle;
 
   if (mode === 'grid') {
     applyGridTargets();
@@ -172,47 +310,78 @@ function setLayoutMode(mode) {
   }
 
   for (const item of bubbles) {
+    item.resumeFloating();
+  }
+
+  applySearch(searchQuery);
+}
+
+function handleBubbleHover(item, isHovering) {
+  if (isHovering) {
+    item.paused = true;
+    return;
+  }
+
+  if (!item.dragging && layoutMode !== 'grid' && !item.node.classList.contains('is-search-match')) {
     item.paused = false;
-    item.vx = item.vx || randomBetween(-0.14, 0.14) || 0.1;
-    item.vy = item.vy || randomBetween(-0.14, 0.14) || -0.1;
   }
 }
 
-function createBubble([label, color, pale, type], index) {
-  const node = document.createElement('div');
-  node.className = 'bubble';
-  node.style.setProperty('--size', `${randomSize()}px`);
-  node.innerHTML = `
-    <img src="${imageFor(label, color, pale, type)}" alt="${label}" draggable="false" />
-    <span>${label}</span>
-  `;
-  layer.appendChild(node);
-
-  const rect = layerRect();
-  const size = parseFloat(node.style.getPropertyValue('--size'));
-  const position = initialPosition(rect, size);
-  const item = {
-    node,
-    size,
-    x: position.x,
-    y: position.y,
-    vx: randomBetween(-0.16, 0.16) || 0.12,
-    vy: randomBetween(-0.16, 0.16) || -0.12,
-    targetX: position.x,
-    targetY: position.y,
-    paused: false,
-    dragging: false
-  };
-
-  node.style.zIndex = String(index + 1);
-  node.addEventListener('pointerenter', () => {
-    item.paused = true;
+function addBubble(data) {
+  const bubble = new Bubble(data, bubbles.length, {
+    layer,
+    getLayerRect: layerRect,
+    getInitialPosition: initialPosition,
+    onPointerDown: startDrag,
+    onHoverChange: handleBubbleHover
   });
-  node.addEventListener('pointerleave', () => {
-    if (!item.dragging) item.paused = false;
-  });
-  node.addEventListener('pointerdown', (event) => startDrag(event, item));
-  bubbles.push(item);
+
+  bubbles.push(bubble);
+
+  if (layoutMode === 'grid') {
+    applyGridTargets();
+  }
+
+  applySearch(searchQuery);
+  return bubble;
+}
+
+function normalizeSearch(value) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function applySearch(value) {
+  searchQuery = normalizeSearch(value);
+  document.body.classList.toggle('is-searching', searchQuery.length > 0);
+
+  for (const item of bubbles) {
+    if (!searchQuery) {
+      item.clearSearchState();
+      continue;
+    }
+
+    const label = item.label.toLocaleLowerCase();
+    item.setSearchState(label.includes(searchQuery) ? 'match' : 'miss');
+  }
+}
+
+function setSearchVisible(isVisible) {
+  searchPanel.classList.toggle('is-open', isVisible);
+  searchPanel.setAttribute('aria-hidden', String(!isVisible));
+  searchToggle.classList.toggle('is-active', isVisible);
+  searchToggle.setAttribute('aria-expanded', String(isVisible));
+
+  if (isVisible) {
+    searchInput.focus();
+    return;
+  }
+
+  searchInput.value = '';
+  applySearch('');
+}
+
+function isSearchEventTarget(target) {
+  return searchPanel.contains(target) || searchToggle.contains(target);
 }
 
 function startDrag(event, item) {
@@ -241,7 +410,7 @@ function stopDrag(event) {
   if (pointer.item === null || event.pointerId !== pointer.id) return;
   const item = pointer.item;
   item.dragging = false;
-  item.paused = false;
+  item.paused = layoutMode === 'grid' || item.node.classList.contains('is-search-match');
   item.node.classList.remove('is-dragging');
   pointer.id = null;
   pointer.item = null;
@@ -294,10 +463,8 @@ function resolveCollisions(bounds) {
   }
 
   for (const item of bubbles) {
-    item.x = Math.min(Math.max(0, item.x), Math.max(0, bounds.width - item.size));
-    item.y = Math.min(Math.max(0, item.y), Math.max(0, bounds.height - item.size));
-    item.vx = Math.max(-0.2, Math.min(0.2, item.vx));
-    item.vy = Math.max(-0.2, Math.min(0.2, item.vy));
+    item.keepInside(bounds);
+    item.clampVelocity();
   }
 }
 
@@ -306,9 +473,8 @@ function animate() {
 
   if (layoutMode === 'grid') {
     for (const item of bubbles) {
-      item.x += (item.targetX - item.x) * 0.08;
-      item.y += (item.targetY - item.y) * 0.08;
-      item.node.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+      item.moveToGridTarget();
+      item.render();
     }
 
     requestAnimationFrame(animate);
@@ -316,22 +482,13 @@ function animate() {
   }
 
   for (const item of bubbles) {
-    if (!item.paused && !item.dragging) {
-      item.x += item.vx;
-      item.y += item.vy;
-
-      if (item.x <= 0 || item.x >= rect.width - item.size) item.vx *= -1;
-      if (item.y <= 0 || item.y >= rect.height - item.size) item.vy *= -1;
-
-      item.x = Math.min(Math.max(0, item.x), Math.max(0, rect.width - item.size));
-      item.y = Math.min(Math.max(0, item.y), Math.max(0, rect.height - item.size));
-    }
+    item.float(rect);
   }
 
   resolveCollisions(rect);
 
   for (const item of bubbles) {
-    item.node.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+    item.render();
   }
 
   requestAnimationFrame(animate);
@@ -340,20 +497,47 @@ function animate() {
 function keepInside() {
   const rect = layerRect();
   for (const item of bubbles) {
-    item.size = item.node.getBoundingClientRect().width;
-    item.x = Math.min(item.x, Math.max(0, rect.width - item.size));
-    item.y = Math.min(item.y, Math.max(0, rect.height - item.size));
+    item.refreshSize(rect);
   }
 
   if (layoutMode === 'grid') applyGridTargets();
 }
 
-items.forEach(createBubble);
+items.forEach(addBubble);
 layoutToggle.addEventListener('click', () => {
   setLayoutMode(layoutMode === 'free' ? 'grid' : 'free');
+});
+searchToggle.addEventListener('click', () => {
+  setSearchVisible(!searchPanel.classList.contains('is-open'));
+});
+document.addEventListener('pointerdown', (event) => {
+  if (!searchPanel.classList.contains('is-open')) return;
+  if (isSearchEventTarget(event.target)) return;
+  setSearchVisible(false);
+});
+searchInput.addEventListener('input', (event) => {
+  applySearch(event.target.value);
+});
+window.addEventListener('keydown', (event) => {
+  const isFindShortcut = event.key.toLocaleLowerCase() === 'f' && (event.ctrlKey || event.metaKey);
+  if (isFindShortcut) {
+    event.preventDefault();
+    setSearchVisible(true);
+    searchInput.select();
+    return;
+  }
+
+  if (event.key === 'Escape') setSearchVisible(false);
 });
 window.addEventListener('pointermove', moveDrag);
 window.addEventListener('pointerup', stopDrag);
 window.addEventListener('pointercancel', stopDrag);
 window.addEventListener('resize', keepInside);
 requestAnimationFrame(animate);
+
+window.bubbleWall = {
+  addBubble,
+  getBubbles: () => [...bubbles],
+  setLayoutMode,
+  search: applySearch
+};

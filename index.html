@@ -7,9 +7,34 @@
   </head>
   <body>
     <main class="stage" aria-label="可拖拽的漂浮图片墙">
-      <div class="hint">拖动圆形图片，悬停查看文字</div>
-      <button id="layoutToggle" class="layout-toggle" type="button" aria-pressed="false">网格布局</button>
+      <button id="layoutToggle" class="layout-toggle" type="button" aria-label="切换为网格布局" title="切换为网格布局" aria-pressed="false">
+        <svg class="layout-icon layout-icon-grid" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
+          <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
+          <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
+          <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
+        </svg>
+        <svg class="layout-icon layout-icon-free" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="7" cy="7" r="3"></circle>
+          <circle cx="17" cy="9" r="2.5"></circle>
+          <circle cx="11" cy="17" r="3.5"></circle>
+        </svg>
+      </button>
       <div id="bubbleLayer" class="bubble-layer"></div>
+      <button id="searchToggle" class="search-toggle" type="button" aria-label="搜索小球" title="搜索小球 Ctrl+F" aria-expanded="false" aria-controls="searchPanel">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m16.5 16.5 4 4"></path>
+        </svg>
+      </button>
+      <div id="searchPanel" class="search-panel" aria-hidden="true">
+        <label class="sr-only" for="bubbleSearch">搜索小球标题</label>
+        <svg class="search-panel-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m16.5 16.5 4 4"></path>
+        </svg>
+        <input id="bubbleSearch" type="search" autocomplete="off" placeholder="输入标题实时搜索" />
+      </div>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
