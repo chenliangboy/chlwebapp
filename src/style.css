@@ -20,8 +20,13 @@ body {
 button,
 input,
 select,
-textarea {
+textarea,
+a {
   font: inherit;
+}
+
+a {
+  text-decoration: none;
 }
 
 button {

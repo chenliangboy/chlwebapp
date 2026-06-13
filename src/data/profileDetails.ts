@@ -1,6 +1,8 @@
+import type { BubbleItem, ProfileDetail } from '@/types/bubble';
+
 const defaultActions = ['chat', 'addFriend', 'more'];
 
-export const profileDetails = {
+const profileDetails: Record<string, Omit<ProfileDetail, 'id'>> = {
   'morning-light': {
     name: '晨光',
     intro: '清晨的灵感节点',
@@ -66,12 +68,12 @@ export const profileDetails = {
   }
 };
 
-export function getProfileDetail(item) {
+export function getProfileDetail(item: BubbleItem): ProfileDetail {
   const detail = profileDetails[item.id] || {};
 
   return {
     id: item.id,
-    name: item.title || item.label || detail.name,
+    name: item.title || item.label || item.name || detail.name || '未命名气泡',
     intro: detail.intro || '暂无简介',
     description: detail.description || '这个气泡还没有补充详细说明。',
     tags: detail.tags || [],

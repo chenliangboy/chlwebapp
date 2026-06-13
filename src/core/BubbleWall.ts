@@ -1,24 +1,67 @@
-import { Bubble } from './Bubble.js';
-import { gridPositions } from './layout.js';
-import { resolveCollisions } from './physics.js';
-import { clamp, randomBetween } from '../utils/math.js';
+import { Bubble, type SavedBubbleState } from './Bubble';
+import { gridPositions, type Point } from './layout';
+import { resolveCollisions } from './physics';
+import { clamp, randomBetween } from '@/utils/math';
+import type { BubbleInput } from '@/types/bubble';
 
-function normalizeSearch(value) {
+export type LayoutMode = 'free' | 'grid';
+
+interface BubbleWallOptions {
+  layer: HTMLElement;
+  items?: BubbleInput[];
+  onBubbleOpen?: (bubble: Bubble) => void;
+}
+
+interface DragPointer {
+  id: number | null;
+  item: Bubble | null;
+  offsetX: number;
+  offsetY: number;
+  startClientX: number;
+  startClientY: number;
+  startedAt: number;
+  moved: boolean;
+}
+
+type SavedPositions = Record<string, SavedBubbleState>;
+
+function normalizeSearch(value: string) {
   return value.trim().toLocaleLowerCase();
 }
 
 const STORAGE_KEY = 'floating-image-bubbles:positions:v1';
 
-function readStoredPositions() {
+function isSavedBubbleState(value: unknown): value is SavedBubbleState {
+  if (!value || typeof value !== 'object') return false;
+  const state = value as SavedBubbleState;
+  return ['x', 'y', 'vx', 'vy', 'size'].every((key) => typeof state[key as keyof SavedBubbleState] === 'number');
+}
+
+function readStoredPositions(): SavedPositions {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(raw).filter(([, value]) => isSavedBubbleState(value))) as SavedPositions;
   } catch {
     return {};
   }
 }
 
 export class BubbleWall {
-  constructor({ layer, items = [], onBubbleOpen = () => {} }) {
+  layer: HTMLElement;
+  bubbles: Bubble[];
+  layoutMode: LayoutMode;
+  searchQuery: string;
+  onBubbleOpen: (bubble: Bubble) => void;
+  isVisible: boolean;
+  isReturningToFree: boolean;
+  savedPositions: SavedPositions;
+  freePositions: SavedPositions;
+  lastPositionSave: number;
+  layoutModeListeners: Set<(mode: LayoutMode) => void>;
+  pointer: DragPointer;
+  destroyed: boolean;
+
+  constructor({ layer, items = [], onBubbleOpen = () => {} }: BubbleWallOptions) {
     this.layer = layer;
     this.bubbles = [];
     this.layoutMode = 'free';
@@ -45,6 +88,7 @@ export class BubbleWall {
     this.stopDrag = this.stopDrag.bind(this);
     this.keepInside = this.keepInside.bind(this);
     this.animate = this.animate.bind(this);
+    this.destroyed = false;
 
     items.forEach((item) => this.addBubble(item));
     this.bindWindowEvents();
@@ -55,7 +99,7 @@ export class BubbleWall {
     return this.layer.getBoundingClientRect();
   }
 
-  onLayoutModeChange(listener) {
+  onLayoutModeChange(listener: (mode: LayoutMode) => void) {
     this.layoutModeListeners.add(listener);
     listener(this.layoutMode);
     return () => this.layoutModeListeners.delete(listener);
@@ -74,7 +118,18 @@ export class BubbleWall {
     window.addEventListener('resize', this.keepInside);
   }
 
-  overlapsExisting(x, y, size) {
+  destroy() {
+    this.destroyed = true;
+    window.removeEventListener('pointermove', this.moveDrag);
+    window.removeEventListener('pointerup', this.stopDrag);
+    window.removeEventListener('pointercancel', this.stopDrag);
+    window.removeEventListener('resize', this.keepInside);
+    this.savePositions(true);
+    this.bubbles.forEach((item) => item.destroy());
+    this.bubbles = [];
+  }
+
+  overlapsExisting(x: number, y: number, size: number) {
     const padding = 8;
     const radius = size / 2;
     const centerX = x + radius;
@@ -89,7 +144,7 @@ export class BubbleWall {
     });
   }
 
-  initialPosition(rect, size) {
+  initialPosition(rect: DOMRect, size: number): Point {
     for (let attempt = 0; attempt < 90; attempt += 1) {
       const x = randomBetween(0, Math.max(0, rect.width - size));
       const y = randomBetween(0, Math.max(0, rect.height - size));
@@ -102,7 +157,7 @@ export class BubbleWall {
     };
   }
 
-  addBubble(data) {
+  addBubble(data: BubbleInput) {
     const bubble = new Bubble(data, this.bubbles.length, {
       layer: this.layer,
       getLayerRect: () => this.getLayerRect(),
@@ -127,7 +182,7 @@ export class BubbleWall {
     return [...this.bubbles];
   }
 
-  setVisible(isVisible) {
+  setVisible(isVisible: boolean) {
     this.isVisible = isVisible;
     if (isVisible) {
       this.keepInside();
@@ -143,7 +198,7 @@ export class BubbleWall {
     if (!force && now - this.lastPositionSave < 500) return;
     this.lastPositionSave = now;
 
-    const nextPositions = {};
+    const nextPositions: SavedPositions = {};
     for (const item of this.bubbles) {
       nextPositions[item.id] = {
         x: Math.round(item.x),
@@ -164,7 +219,7 @@ export class BubbleWall {
     }
   }
 
-  updateBubble(id, data) {
+  updateBubble(id: string, data: BubbleInput) {
     const bubble = this.bubbles.find((item) => item.id === id);
     if (!bubble) return null;
     bubble.update(data);
@@ -174,7 +229,7 @@ export class BubbleWall {
     return bubble;
   }
 
-  removeBubble(id) {
+  removeBubble(id: string) {
     const index = this.bubbles.findIndex((item) => item.id === id);
     if (index === -1) return false;
     const [bubble] = this.bubbles.splice(index, 1);
@@ -190,7 +245,7 @@ export class BubbleWall {
     return true;
   }
 
-  openBubble(item) {
+  openBubble(item: Bubble) {
     this.onBubbleOpen(item);
   }
 
@@ -202,7 +257,7 @@ export class BubbleWall {
     });
   }
 
-  setLayoutMode(mode) {
+  setLayoutMode(mode: LayoutMode) {
     if (mode === this.layoutMode) return;
     if (mode === 'grid') {
       this.savePositions(true);
@@ -220,12 +275,11 @@ export class BubbleWall {
 
     if (mode === 'free') {
       this.startReturnToFreePositions();
-      return;
     }
   }
 
   captureFreePositions() {
-    const nextPositions = {};
+    const nextPositions: SavedPositions = {};
     for (const item of this.bubbles) {
       nextPositions[item.id] = {
         x: Math.round(item.x),
@@ -275,7 +329,7 @@ export class BubbleWall {
     this.savePositions(true);
   }
 
-  handleBubbleHover(item, isHovering) {
+  handleBubbleHover(item: Bubble, isHovering: boolean) {
     if (isHovering) {
       item.paused = true;
       return;
@@ -286,7 +340,7 @@ export class BubbleWall {
     }
   }
 
-  search(value) {
+  search(value: string) {
     this.searchQuery = normalizeSearch(value);
     document.body.classList.toggle('is-searching', this.searchQuery.length > 0);
 
@@ -301,7 +355,7 @@ export class BubbleWall {
     }
   }
 
-  startDrag(event, item) {
+  startDrag(event: PointerEvent, item: Bubble) {
     if (this.layoutMode === 'grid' || this.isReturningToFree) return;
 
     const rect = this.getLayerRect();
@@ -319,7 +373,7 @@ export class BubbleWall {
     item.node.setPointerCapture(event.pointerId);
   }
 
-  moveDrag(event) {
+  moveDrag(event: PointerEvent) {
     if (this.pointer.item === null || event.pointerId !== this.pointer.id) return;
     const rect = this.getLayerRect();
     const item = this.pointer.item;
@@ -331,7 +385,7 @@ export class BubbleWall {
     this.savePositions();
   }
 
-  stopDrag(event) {
+  stopDrag(event: PointerEvent) {
     if (this.pointer.item === null || event.pointerId !== this.pointer.id) return;
     const item = this.pointer.item;
     const wasTap = !this.pointer.moved && Date.now() - this.pointer.startedAt < 450;
@@ -350,6 +404,7 @@ export class BubbleWall {
   }
 
   animate() {
+    if (this.destroyed) return;
     const rect = this.getLayerRect();
     if (!this.isVisible || rect.width === 0 || rect.height === 0) {
       requestAnimationFrame(this.animate);

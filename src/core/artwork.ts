@@ -1,4 +1,4 @@
-export function imageFor(label, color, pale, image) {
+export function imageFor(label = '', color = '#64748b', pale = '#e2e8f0', image = '') {
   if (image) return image;
 
   const svg = `

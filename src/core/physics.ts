@@ -1,4 +1,6 @@
-export function resolveCollisions(bubbles, bounds) {
+import type { Bubble } from './Bubble';
+
+export function resolveCollisions(bubbles: Bubble[], bounds: DOMRect) {
   const padding = 8;
 
   for (let i = 0; i < bubbles.length; i += 1) {

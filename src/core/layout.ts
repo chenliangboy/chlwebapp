@@ -1,6 +1,12 @@
-import { clamp } from '../utils/math.js';
+import { clamp } from '@/utils/math';
+import type { Bubble } from './Bubble';
 
-export function gridPositions(bubbles, rect) {
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export function gridPositions(bubbles: Bubble[], rect: DOMRect): Point[] {
   const topReserve = window.matchMedia('(max-width: 560px)').matches ? 76 : 88;
   const sideGap = window.matchMedia('(max-width: 560px)').matches ? 18 : 36;
   const largest = Math.max(...bubbles.map((item) => item.size), 64);
