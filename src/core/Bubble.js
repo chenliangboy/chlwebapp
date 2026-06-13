@@ -10,15 +10,19 @@ function randomSize() {
 
 export class Bubble {
   constructor(data, index, options) {
-    const { label, color, pale, type, image } = normalizeItem(data);
+    const { id, label, color, pale, type, image } = normalizeItem(data);
     const {
       layer,
       getLayerRect,
       getInitialPosition,
       onPointerDown,
-      onHoverChange
+      onHoverChange,
+      onOpen,
+      getSavedState
     } = options;
 
+    this.item = { ...data, id, title: label, label, color, pale, type, image };
+    this.id = id;
     this.label = label;
     this.color = color;
     this.pale = pale;
@@ -27,7 +31,8 @@ export class Bubble {
     this.node = document.createElement('div');
     this.node.className = 'bubble';
     this.node.classList.toggle('has-image', Boolean(image));
-    this.node.style.setProperty('--size', `${randomSize()}px`);
+    const savedState = getSavedState(id);
+    this.node.style.setProperty('--size', `${savedState?.size || randomSize()}px`);
     this.node.style.zIndex = String(index + 1);
     this.node.innerHTML = `
       <div class="bubble-visual">
@@ -40,11 +45,16 @@ export class Bubble {
 
     const rect = getLayerRect();
     this.size = parseFloat(this.node.style.getPropertyValue('--size'));
-    const position = getInitialPosition(rect, this.size);
+    const position = savedState && rect.width > 0 && rect.height > 0
+      ? {
+        x: clamp(savedState.x, 0, Math.max(0, rect.width - this.size)),
+        y: clamp(savedState.y, 0, Math.max(0, rect.height - this.size))
+      }
+      : getInitialPosition(rect, this.size);
     this.x = position.x;
     this.y = position.y;
-    this.vx = randomBetween(-0.16, 0.16) || 0.12;
-    this.vy = randomBetween(-0.16, 0.16) || -0.12;
+    this.vx = savedState?.vx ?? (randomBetween(-0.16, 0.16) || 0.12);
+    this.vy = savedState?.vy ?? (randomBetween(-0.16, 0.16) || -0.12);
     this.targetX = position.x;
     this.targetY = position.y;
     this.paused = false;
@@ -57,7 +67,30 @@ export class Bubble {
       onHoverChange(this, false);
     });
     this.node.addEventListener('pointerdown', (event) => onPointerDown(event, this));
+    this.node.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      onOpen(this);
+    });
     this.render();
+  }
+
+  update(data) {
+    const { id, label, color, pale, type, image } = normalizeItem({ ...this.item, ...data });
+    this.item = { ...this.item, ...data, id, title: label, label, color, pale, type, image };
+    this.id = id;
+    this.label = label;
+    this.color = color;
+    this.pale = pale;
+    this.type = type;
+    this.image = image;
+    this.node.classList.toggle('has-image', Boolean(image));
+    this.node.querySelector('img').src = imageFor(label, color, pale, image);
+    this.node.querySelector('img').alt = label;
+    this.node.querySelector('span').textContent = label;
+  }
+
+  destroy() {
+    this.node.remove();
   }
 
   setSearchState(state) {
@@ -75,6 +108,16 @@ export class Bubble {
     this.targetX = position.x;
     this.targetY = position.y;
     this.paused = true;
+  }
+
+  setReturnTarget(position) {
+    this.targetX = position.x;
+    this.targetY = position.y;
+    this.paused = true;
+  }
+
+  isNearTarget(threshold = 1.4) {
+    return Math.hypot(this.targetX - this.x, this.targetY - this.y) <= threshold;
   }
 
   resumeFloating() {
