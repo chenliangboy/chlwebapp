@@ -10,6 +10,21 @@ export type BubbleType =
   | 'book'
   | string;
 
+export type BubbleCategory = 'friend' | 'game' | 'agent' | 'ai-chat' | 'tool' | 'note' | string;
+
+export type BubbleActionKind = 'open-panel' | 'open-url' | 'run-command' | 'custom';
+
+export type BubblePanelType = 'chat' | 'game' | 'agent-tool' | 'ai-chat' | 'web' | 'detail' | string;
+
+export interface BubbleAction {
+  kind: BubbleActionKind;
+  panel?: BubblePanelType;
+  url?: string;
+  target?: 'workspace' | 'new-tab' | 'same-tab';
+  command?: string;
+  payload?: Record<string, unknown>;
+}
+
 export interface BubbleItem {
   id: string;
   title: string;
@@ -24,6 +39,13 @@ export interface BubbleItem {
   lightColor?: string;
   backgroundColor?: string;
   type: BubbleType;
+  subtitle?: string;
+  category?: BubbleCategory;
+  tags?: string[];
+  pinned?: boolean;
+  enabled?: boolean;
+  action?: BubbleAction;
+  meta?: Record<string, unknown>;
 }
 
 export type BubbleInput =

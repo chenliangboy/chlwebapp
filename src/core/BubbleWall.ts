@@ -1,4 +1,5 @@
 import { Bubble, type SavedBubbleState } from './Bubble';
+import { getBubbleTypeDefinition } from '@/data/bubbleTypes';
 import { gridPositions, type Point } from './layout';
 import { resolveCollisions } from './physics';
 import { clamp, randomBetween } from '@/utils/math';
@@ -27,6 +28,26 @@ type SavedPositions = Record<string, SavedBubbleState>;
 
 function normalizeSearch(value: string) {
   return value.trim().toLocaleLowerCase();
+}
+
+function searchableText(item: Bubble) {
+  const bubbleItem = item.item;
+  const category = getBubbleTypeDefinition(bubbleItem.category);
+  const tags = bubbleItem.tags || [];
+  const metaValues = bubbleItem.meta ? Object.values(bubbleItem.meta) : [];
+
+  return [
+    item.label,
+    bubbleItem.title,
+    bubbleItem.subtitle,
+    bubbleItem.category,
+    category.label,
+    ...tags,
+    ...metaValues.map((value) => String(value))
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLocaleLowerCase();
 }
 
 const STORAGE_KEY = 'floating-image-bubbles:positions:v1';
@@ -350,8 +371,7 @@ export class BubbleWall {
         continue;
       }
 
-      const label = item.label.toLocaleLowerCase();
-      item.setSearchState(label.includes(this.searchQuery) ? 'match' : 'miss');
+      item.setSearchState(searchableText(item).includes(this.searchQuery) ? 'match' : 'miss');
     }
   }
 

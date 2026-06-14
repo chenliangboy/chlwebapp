@@ -1,4 +1,5 @@
 import { imageFor } from './artwork';
+import { getBubbleTypeDefinition } from '@/data/bubbleTypes';
 import { clamp, randomBetween } from '@/utils/math';
 import { normalizeItem } from '@/utils/normalizeItem';
 import type { BubbleInput, BubbleItem } from '@/types/bubble';
@@ -70,14 +71,21 @@ export class Bubble {
     this.node = document.createElement('div');
     this.node.className = 'bubble';
     this.node.classList.toggle('has-image', Boolean(image));
+    this.applyMetadata();
     const savedState = getSavedState(id);
     this.node.style.setProperty('--size', `${savedState?.size || randomSize()}px`);
     this.node.style.zIndex = String(index + 1);
+    const definition = getBubbleTypeDefinition(this.item.category);
+    const subtitle = this.item.subtitle || definition.label;
     this.node.innerHTML = `
       <div class="bubble-visual">
         <img src="${imageFor(label, color, pale, image)}" alt="${label}" draggable="false" />
       </div>
-      <span>${label}</span>
+      <div class="bubble-hover-card">
+        <strong>${label}</strong>
+        <small>${subtitle}</small>
+        <em>${definition.label}</em>
+      </div>
     `;
 
     layer.appendChild(this.node);
@@ -113,6 +121,13 @@ export class Bubble {
     this.render();
   }
 
+  applyMetadata() {
+    const definition = getBubbleTypeDefinition(this.item.category);
+    this.node.dataset.category = definition.id;
+    this.node.style.setProperty('--category-color', definition.defaultColor);
+    this.node.style.setProperty('--category-pale', definition.defaultPale);
+  }
+
   update(data: BubbleInput) {
     const { id, label, color, pale, type, image } = normalizeItem({ ...this.item, ...(Array.isArray(data) ? {} : data) });
     this.item = { ...this.item, ...(Array.isArray(data) ? {} : data), id, title: label, label, color, pale, type, image };
@@ -123,13 +138,19 @@ export class Bubble {
     this.type = type;
     this.image = image;
     this.node.classList.toggle('has-image', Boolean(image));
+    this.applyMetadata();
     const imageNode = this.node.querySelector('img');
-    const labelNode = this.node.querySelector('span');
+    const labelNode = this.node.querySelector('.bubble-hover-card strong');
+    const subtitleNode = this.node.querySelector('.bubble-hover-card small');
+    const categoryNode = this.node.querySelector('.bubble-hover-card em');
+    const definition = getBubbleTypeDefinition(this.item.category);
     if (imageNode) {
       imageNode.src = imageFor(label, color, pale, image);
       imageNode.alt = label;
     }
     if (labelNode) labelNode.textContent = label;
+    if (subtitleNode) subtitleNode.textContent = this.item.subtitle || definition.label;
+    if (categoryNode) categoryNode.textContent = definition.label;
   }
 
   destroy() {

@@ -20,6 +20,7 @@ function normalizeBubbleInput(data: BubbleInput): BubbleItem {
   const title = data.title || data.label || data.name || '';
 
   return {
+    ...data,
     id: data.id || data.title || data.label || data.name || `bubble-${Date.now()}`,
     title,
     label: data.label,
@@ -27,7 +28,14 @@ function normalizeBubbleInput(data: BubbleInput): BubbleItem {
     image: resolvePublicImagePath(data.image || data.imageUrl || data.img || data.src || ''),
     color: data.color || '#64748b',
     pale: data.pale || data.lightColor || data.backgroundColor || '#e2e8f0',
-    type: data.type || 'spark'
+    type: data.type || 'spark',
+    subtitle: data.subtitle,
+    category: data.category || 'note',
+    tags: data.tags || [],
+    pinned: data.pinned,
+    enabled: data.enabled,
+    action: data.action,
+    meta: data.meta
   };
 }
 
