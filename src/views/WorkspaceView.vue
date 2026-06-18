@@ -22,6 +22,26 @@
         </svg>
       </button>
 
+      <button
+        class="motion-toggle"
+        type="button"
+        :aria-label="motionTitle"
+        :title="motionTitle"
+        :aria-pressed="freeMotionMode === 'float'"
+        @click="toggleFreeMotion"
+      >
+        <svg class="motion-icon motion-icon-still" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 12h14"></path>
+          <path d="M12 5v14"></path>
+          <circle cx="12" cy="12" r="7"></circle>
+        </svg>
+        <svg class="motion-icon motion-icon-float" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 14c3.2-6 7.6-6 11-2.2 1.7 1.9 3.2 2.6 5 1.2"></path>
+          <path d="M5 18c2.4-2.6 5.1-2.5 7.8 0"></path>
+          <path d="M17 6l3 3-3 3"></path>
+        </svg>
+      </button>
+
       <div ref="bubbleLayer" class="bubble-layer"></div>
 
       <button
@@ -135,6 +155,7 @@ const searchToggle = ref<HTMLElement | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 const bubbleWall = ref<BubbleWall | null>(null);
 const layoutMode = ref<'free' | 'grid'>('free');
+const freeMotionMode = ref<'still' | 'float'>('float');
 const searchQuery = ref('');
 const isSearchOpen = ref(false);
 const activeBubble = ref<BubbleItem | null>(null);
@@ -142,11 +163,14 @@ const activePanel = ref<BubblePanelType>('detail');
 let stopLayoutListener: (() => void) | undefined;
 
 const layoutTitle = computed(() => (layoutMode.value === 'grid' ? '切换为自由布局' : '切换为网格布局'));
+const motionTitle = computed(() => (freeMotionMode.value === 'float' ? '自由模式：随机漂浮' : '自由模式：固定位置'));
 const activeCategoryLabel = computed(() => activeBubble.value ? getBubbleTypeDefinition(activeBubble.value.category).label : '');
 const isImmersivePanel = computed(() => ['chat', 'ai-chat'].includes(activePanel.value));
 
 function syncBodyClasses() {
   document.body.classList.toggle('is-grid-mode', layoutMode.value === 'grid');
+  document.body.classList.toggle('is-free-floating', freeMotionMode.value === 'float');
+  document.body.classList.toggle('is-free-still', freeMotionMode.value === 'still');
   document.body.classList.toggle('is-searching', searchQuery.value.trim().length > 0);
 }
 
@@ -211,6 +235,11 @@ function exposeLegacyApi() {
     setLayoutMode(mode: 'free' | 'grid') {
       wall.setLayoutMode(mode);
     },
+    setFreeMotionMode(mode: 'still' | 'float') {
+      freeMotionMode.value = mode;
+      wall.setFreeMotionMode(mode);
+      syncBodyClasses();
+    },
     search(value: string) {
       searchQuery.value = value;
       wall.search(value);
@@ -221,6 +250,12 @@ function exposeLegacyApi() {
 
 function toggleLayout() {
   bubbleWall.value?.setLayoutMode(layoutMode.value === 'free' ? 'grid' : 'free');
+}
+
+function toggleFreeMotion() {
+  freeMotionMode.value = freeMotionMode.value === 'float' ? 'still' : 'float';
+  bubbleWall.value?.setFreeMotionMode(freeMotionMode.value);
+  syncBodyClasses();
 }
 
 function setSearchVisible(isVisible: boolean) {
@@ -314,6 +349,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', handleDocumentPointerDown);
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('beforeunload', savePositions);
-  document.body.classList.remove('is-grid-mode', 'is-searching', 'is-returning-free');
+  document.body.classList.remove('is-grid-mode', 'is-free-floating', 'is-free-still', 'is-searching', 'is-returning-free');
 });
 </script>

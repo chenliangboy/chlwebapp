@@ -59,7 +59,7 @@ export const bubbleTypeDefinitions: Record<string, BubbleTypeDefinition> = {
     tone: 'slate'
   }
 };
-
+  
 export function getBubbleTypeDefinition(category = 'note') {
   return bubbleTypeDefinitions[category] || bubbleTypeDefinitions.note;
 }

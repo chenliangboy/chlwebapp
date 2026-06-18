@@ -56,6 +56,6 @@ const marketGames: BubbleItem[] = [
 async function editBubble(item: BubbleItem) {
   activeItem.value = null;
   bubblesStore.selectBubble(item.id);
-  await router.push({ name: 'settings', query: { edit: item.id } });
+  await router.push({ name: 'customize', query: { edit: item.id } });
 }
 </script>

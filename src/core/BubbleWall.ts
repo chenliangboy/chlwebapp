@@ -6,6 +6,7 @@ import { clamp, randomBetween } from '@/utils/math';
 import type { BubbleInput } from '@/types/bubble';
 
 export type LayoutMode = 'free' | 'grid';
+export type FreeMotionMode = 'still' | 'float';
 
 interface BubbleWallOptions {
   layer: HTMLElement;
@@ -71,6 +72,7 @@ export class BubbleWall {
   layer: HTMLElement;
   bubbles: Bubble[];
   layoutMode: LayoutMode;
+  freeMotionMode: FreeMotionMode;
   searchQuery: string;
   onBubbleOpen: (bubble: Bubble) => void;
   isVisible: boolean;
@@ -86,6 +88,7 @@ export class BubbleWall {
     this.layer = layer;
     this.bubbles = [];
     this.layoutMode = 'free';
+    this.freeMotionMode = 'float';
     this.searchQuery = '';
     this.onBubbleOpen = onBubbleOpen;
     this.isVisible = true;
@@ -129,6 +132,27 @@ export class BubbleWall {
   emitLayoutModeChange() {
     for (const listener of this.layoutModeListeners) {
       listener(this.layoutMode);
+    }
+  }
+
+  setFreeMotionMode(mode: FreeMotionMode) {
+    if (mode === this.freeMotionMode) return;
+    this.freeMotionMode = mode;
+
+    if (mode === 'still') {
+      for (const item of this.bubbles) {
+        item.paused = true;
+      }
+      this.savePositions(true);
+      return;
+    }
+
+    if (this.layoutMode === 'free' && !this.isReturningToFree) {
+      for (const item of this.bubbles) {
+        if (!item.dragging && !item.node.matches(':hover') && !item.node.classList.contains('is-search-match')) {
+          item.resumeFloating();
+        }
+      }
     }
   }
 
@@ -345,7 +369,11 @@ export class BubbleWall {
     for (const item of this.bubbles) {
       item.x = item.targetX;
       item.y = item.targetY;
-      item.resumeFloating();
+      if (this.freeMotionMode === 'float') {
+        item.resumeFloating();
+      } else {
+        item.paused = true;
+      }
     }
     this.savePositions(true);
   }
@@ -356,7 +384,7 @@ export class BubbleWall {
       return;
     }
 
-    if (!item.dragging && this.layoutMode !== 'grid' && !this.isReturningToFree && !item.node.classList.contains('is-search-match')) {
+    if (!item.dragging && this.layoutMode !== 'grid' && this.freeMotionMode === 'float' && !this.isReturningToFree && !item.node.classList.contains('is-search-match')) {
       item.paused = false;
     }
   }
@@ -367,7 +395,7 @@ export class BubbleWall {
 
     for (const item of this.bubbles) {
       if (!this.searchQuery) {
-        item.clearSearchState(this.layoutMode !== 'grid');
+        item.clearSearchState(this.layoutMode !== 'grid' && this.freeMotionMode === 'float');
         continue;
       }
 
@@ -410,7 +438,7 @@ export class BubbleWall {
     const item = this.pointer.item;
     const wasTap = !this.pointer.moved && Date.now() - this.pointer.startedAt < 450;
     item.dragging = false;
-    item.paused = this.layoutMode === 'grid' || item.node.classList.contains('is-search-match');
+    item.paused = this.layoutMode === 'grid' || this.freeMotionMode === 'still' || item.node.classList.contains('is-search-match');
     item.node.classList.remove('is-dragging');
     this.pointer.id = null;
     this.pointer.item = null;
@@ -455,10 +483,14 @@ export class BubbleWall {
     }
 
     for (const item of this.bubbles) {
-      item.float(rect);
+      if (this.freeMotionMode === 'float') {
+        item.float(rect);
+      } else {
+        item.keepInside(rect);
+      }
     }
 
-    resolveCollisions(this.bubbles, rect);
+    if (this.freeMotionMode === 'float') resolveCollisions(this.bubbles, rect);
 
     for (const item of this.bubbles) {
       item.render();

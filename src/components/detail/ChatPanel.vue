@@ -6,7 +6,6 @@
       </div>
       <div>
         <h2>{{ profile.name }}</h2>
-        <p>{{ profile.intro }}</p>
       </div>
       <button class="modal-close chat-close" type="button" aria-label="关闭" title="关闭" @click="$emit('back')">
         <span aria-hidden="true">&times;</span>

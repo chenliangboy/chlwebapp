@@ -1,9 +1,10 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import AgentsView from '@/views/AgentsView.vue';
+import CustomizeView from '@/views/CustomizeView.vue';
 import FriendsView from '@/views/FriendsView.vue';
 import GamesView from '@/views/GamesView.vue';
-import WorkspaceView from '@/views/WorkspaceView.vue';
 import SettingsView from '@/views/SettingsView.vue';
+import WorkspaceView from '@/views/WorkspaceView.vue';
 
 export const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -30,7 +31,13 @@ export const router = createRouter({
       path: '/agents',
       name: 'agents',
       component: AgentsView,
-      meta: { label: 'AI智能体' }
+      meta: { label: 'AI 智能体' }
+    },
+    {
+      path: '/customize',
+      name: 'customize',
+      component: CustomizeView,
+      meta: { label: '自定义' }
     },
     {
       path: '/settings',

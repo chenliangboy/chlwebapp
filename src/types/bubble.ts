@@ -82,5 +82,6 @@ export interface BubbleWallPublicApi {
   removeBubble(id: string): boolean;
   getBubbles(): BubbleEngine[];
   setLayoutMode(mode: 'free' | 'grid'): void;
+  setFreeMotionMode(mode: 'still' | 'float'): void;
   search(value: string): void;
 }
