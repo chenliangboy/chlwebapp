@@ -2783,16 +2783,17 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .sidebar-left,
 :root[data-theme="light"] .side-panel {
   border-color: rgba(15, 23, 42, 0.12);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.42);
   box-shadow:
     0 24px 70px rgba(15, 23, 42, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(28px) saturate(1.32);
 }
 
 :root[data-theme="light"] .sidebar-left {
   border-color: rgba(148, 163, 184, 0.1);
-  background: rgba(255, 255, 255, 0.34);
-  backdrop-filter: none;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(28px) saturate(1.28);
   box-shadow:
     0 20px 60px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -2820,11 +2821,12 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .tool-quick-action {
   border-color: rgba(15, 23, 42, 0.1);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(241, 245, 249, 0.68));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(241, 245, 249, 0.34));
   color: rgba(51, 65, 85, 0.86);
   box-shadow:
     0 10px 24px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(22px) saturate(1.28);
 }
 
 :root[data-theme="light"] .menu-item:hover,
@@ -2840,7 +2842,7 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .emoji-panel button:hover {
   border-color: rgba(var(--app-accent-rgb), 0.32);
   background:
-    linear-gradient(180deg, rgba(var(--app-accent-rgb), 0.16), rgba(255, 255, 255, 0.78));
+    linear-gradient(180deg, rgba(var(--app-accent-rgb), 0.18), rgba(255, 255, 255, 0.48));
   color: var(--app-accent-strong);
   box-shadow:
     0 14px 32px rgba(var(--app-accent-rgb), 0.14),
@@ -2850,7 +2852,7 @@ html[data-background="midnight"] {
 
 :root[data-theme="light"] .menu-item.is-active {
   border-color: rgba(var(--app-accent-rgb), 0.22);
-  background: rgba(var(--app-accent-rgb), 0.16);
+  background: rgba(var(--app-accent-rgb), 0.2);
   color: var(--app-accent-strong);
   box-shadow:
     inset 0 -2px 0 rgba(var(--app-accent-rgb), 0.44),
@@ -2898,7 +2900,7 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .view-panel,
 :root[data-theme="light"] .settings-view,
 :root[data-theme="light"] .module-view {
-  background: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 :root[data-theme="light"] .module-toolbar,
@@ -2919,10 +2921,11 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .web-panel,
 :root[data-theme="light"] .chat-modal {
   border-color: rgba(15, 23, 42, 0.11);
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.48);
   box-shadow:
     0 18px 48px rgba(15, 23, 42, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(26px) saturate(1.28);
 }
 
 :root[data-theme="light"] .settings-current-value {
@@ -2940,7 +2943,7 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .background-preset-choice.is-selected,
 :root[data-theme="light"] .toolbar-position-choice.is-selected {
   border-color: rgba(var(--app-accent-rgb), 0.24);
-  background: rgba(var(--app-accent-rgb), 0.14);
+  background: rgba(var(--app-accent-rgb), 0.16);
   color: var(--app-accent-strong);
 }
 
@@ -2957,11 +2960,36 @@ html[data-background="midnight"] {
   color: rgba(71, 85, 105, 0.72);
 }
 
+:root[data-theme="light"] .settings-section {
+  background: rgba(255, 255, 255, 0.56);
+}
+
+:root[data-theme="light"] .settings-choice,
+:root[data-theme="light"] .theme-preset-choice,
+:root[data-theme="light"] .background-preset-choice,
+:root[data-theme="light"] .toolbar-position-choice {
+  background: rgba(255, 255, 255, 0.52);
+  color: #334155;
+}
+
+:root[data-theme="light"] .settings-choice:hover,
+:root[data-theme="light"] .theme-preset-choice:hover,
+:root[data-theme="light"] .background-preset-choice:hover,
+:root[data-theme="light"] .toolbar-position-choice:hover,
+:root[data-theme="light"] .settings-choice.is-selected,
+:root[data-theme="light"] .theme-preset-choice.is-selected,
+:root[data-theme="light"] .background-preset-choice.is-selected,
+:root[data-theme="light"] .toolbar-position-choice.is-selected {
+  border-color: rgba(var(--app-accent-rgb), 0.24);
+  background: rgba(var(--app-accent-rgb), 0.16);
+  color: var(--app-accent-strong);
+}
+
 :root[data-theme="light"] .friend-card:hover,
 :root[data-theme="light"] .module-card:hover,
 :root[data-theme="light"] .bubble-list-item:hover {
   border-color: rgba(var(--app-accent-rgb), 0.28);
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.62);
   box-shadow:
     0 22px 54px rgba(var(--app-accent-rgb), 0.13),
     0 14px 28px rgba(15, 23, 42, 0.08),
@@ -2985,10 +3013,11 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .chat-composer,
 :root[data-theme="light"] .emoji-panel {
   border-color: rgba(15, 23, 42, 0.12);
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.5);
   box-shadow:
     0 16px 38px rgba(15, 23, 42, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(24px) saturate(1.26);
 }
 
 :root[data-theme="light"] input,
@@ -3245,12 +3274,12 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .motion-toggle,
 :root[data-theme="light"] .search-toggle {
   border-color: rgba(15, 23, 42, 0.12);
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.48);
   color: rgba(51, 65, 85, 0.78);
   box-shadow:
     0 16px 36px rgba(15, 23, 42, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(18px) saturate(1.12);
+  backdrop-filter: blur(24px) saturate(1.28);
 }
 
 :root[data-theme="light"] .layout-toggle:hover,
@@ -3258,7 +3287,7 @@ html[data-background="midnight"] {
 :root[data-theme="light"] .search-toggle:hover,
 :root[data-theme="light"] .search-toggle.is-active {
   border-color: rgba(var(--app-accent-rgb), 0.3);
-  background: rgba(239, 246, 255, 0.92);
+  background: rgba(239, 246, 255, 0.64);
   color: var(--app-accent-strong);
   box-shadow:
     0 18px 40px rgba(var(--app-accent-rgb), 0.16),
@@ -3277,7 +3306,7 @@ html[data-theme="light"] .app-shell .stage > .layout-toggle,
 html[data-theme="light"] .app-shell .stage > .motion-toggle,
 html[data-theme="light"] .app-shell .stage > .search-toggle {
   border-color: rgba(15, 23, 42, 0.12) !important;
-  background: rgba(255, 255, 255, 0.84) !important;
+  background: rgba(255, 255, 255, 0.54) !important;
   color: #475569 !important;
   box-shadow:
     0 16px 34px rgba(15, 23, 42, 0.12),
@@ -3289,7 +3318,7 @@ html[data-theme="light"] .app-shell .stage > .motion-toggle:hover,
 html[data-theme="light"] .app-shell .stage > .search-toggle:hover,
 html[data-theme="light"] .app-shell .stage > .search-toggle.is-active {
   border-color: rgba(var(--app-accent-rgb), 0.32) !important;
-  background: rgba(239, 246, 255, 0.96) !important;
+  background: rgba(239, 246, 255, 0.7) !important;
   color: var(--app-accent-strong) !important;
   box-shadow:
     0 18px 40px rgba(var(--app-accent-rgb), 0.15),
@@ -3312,7 +3341,7 @@ html[data-theme="light"] .app-shell .stage > .motion-toggle[aria-pressed="true"]
 
 html[data-theme="light"] .settings-view .bubble-list-item {
   border-color: rgba(15, 23, 42, 0.1);
-  background: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.52);
   box-shadow:
     0 14px 34px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -3320,7 +3349,7 @@ html[data-theme="light"] .settings-view .bubble-list-item {
 
 html[data-theme="light"] .settings-view .bubble-list-item:hover {
   border-color: rgba(37, 99, 235, 0.24);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.66);
   box-shadow:
     0 18px 42px rgba(37, 99, 235, 0.1),
     0 10px 24px rgba(15, 23, 42, 0.07),
@@ -3344,13 +3373,12 @@ html[data-theme="light"] .settings-view .list-avatar {
 
 html[data-theme="light"] .settings-view .list-actions .icon-button {
   border-color: rgba(15, 23, 42, 0.1);
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.54);
   color: rgba(51, 65, 85, 0.84);
 }
 
 html[data-theme="light"] .settings-view .list-actions .icon-button:hover {
   border-color: rgba(37, 99, 235, 0.28);
-  background: rgba(239, 246, 255, 0.92);
+  background: rgba(239, 246, 255, 0.68);
   color: #2563eb;
 }
-
