@@ -51,16 +51,20 @@
     </nav>
 
     <nav class="app-menu app-menu-secondary" aria-label="应用菜单">
-      <RouterLink class="menu-item" active-class="is-active" :to="{ name: 'settings' }" aria-label="设置" title="设置">
+      <button class="menu-item" type="button" aria-label="设置" title="设置" @click="emit('openSettings')">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 3v3M12 18v3M4.6 7.5l2.6 1.5M16.8 15l2.6 1.5M4.6 16.5 7.2 15M16.8 9l2.6-1.5"></path>
           <circle cx="12" cy="12" r="4"></circle>
         </svg>
-      </RouterLink>
+      </button>
     </nav>
   </aside>
 </template>
 
 <script setup lang="ts">
+const emit = defineEmits<{
+  openSettings: [];
+}>();
+
 const chlLogo = `${import.meta.env.BASE_URL}images/chl.png`;
 </script>
